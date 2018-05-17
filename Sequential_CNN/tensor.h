@@ -1,3 +1,6 @@
+#ifndef __TENSOR_H_INCLUDED__   
+#define __TENSOR_H_INCLUDED__   
+
 #include<iostream>
 #include<assert.h>
 
@@ -26,6 +29,10 @@ public:
 
 	Tensor( struct TensorSize tsize_ ): tsize(tsize_) {
 		data = new T[tsize_.x * tsize_.y * tsize_.z];
+	}
+
+	Tensor(): tsize({0,0,0}) {
+		data = new T[0];
 	}
 
 	Tensor<T> operator+ (Tensor<T>& ts) {
@@ -66,9 +73,9 @@ public:
 	void printTensor() {
 		for (int k = 0; k < this->tsize.z; k++) {
 			cout << "\nz = " << k << ": \n";
-			for (int i = 0; i < this->tsize.x; i++) {
+			for (int j = 0; j < this->tsize.y; j++) {
 				cout << "\n\t";
-				for (int j = 0; j < this->tsize.y; j++) {
+				for (int i = 0; i < this->tsize.x; i++) {
 					cout << this->get(i, j, k) << " ";
 				}
 			}
@@ -76,7 +83,43 @@ public:
 		cout << endl;
 	}
 
+	Tensor<T> flatten() {
+		Tensor<T> res(this->tsize.z * this->tsize.y * this->tsize.x, 1, 1);
+
+		for (int k = 0; k < this->tsize.z; k++) {
+			for (int j = 0; j < this->tsize.y; j++) {
+				for (int i = 0; i < this->tsize.x; i++) {
+					int indx = k * this->tsize.y * this->tsize.x + j * this->tsize.x + i;
+					res(indx, 0, 0) = this->get(i, j, k);
+				}
+			}
+		}
+
+		return res;
+	}
+
+	Tensor<T> reshape(int x, int y, int z) {
+		assert(this->tsize.x * this->tsize.y * this->tsize.z == x * y * z);
+		Tensor<T> res(x, y, z);
+		Tensor<T> temp;
+
+		if (this->tsize.y != 1 || this->tsize.z != 1) {
+			temp = this->flatten();
+		} else {
+			temp = *this;
+		}
+
+		for (int k = 0; k < z; k++) {
+			for (int j = 0; j < y; j++) {
+				for (int i = 0; i < x; i++) {
+					int indx = k * y * x + j * x + i;
+					res(i, j, k) = temp(indx, 0, 0);
+				}
+			}
+		}
+		return res;
+	}
+
 };
 
-
-
+#endif

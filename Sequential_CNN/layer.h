@@ -1,3 +1,6 @@
+#ifndef __LAYER_H_INCLUDED__   
+#define __LAYER_H_INCLUDED__  
+
 #include "tensor.h"
 
 using namespace std;
@@ -11,3 +14,5 @@ public:
 	Tensor<float> *gradIn;
 
 };
+
+#endif

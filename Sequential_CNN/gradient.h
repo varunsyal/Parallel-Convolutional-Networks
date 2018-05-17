@@ -1,3 +1,6 @@
+#ifndef __GRAD_H_INCLUDED__   
+#define __GRAD_H_INCLUDED__  
+
 using namespace std;
 
 template <class T>
@@ -17,3 +20,5 @@ template <class U>
 ostream& operator<< (ostream& stream, const Gradient<U>& grad) {
 		stream << grad.value;
 }
+
+#endif
