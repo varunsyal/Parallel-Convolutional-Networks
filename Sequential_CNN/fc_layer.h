@@ -12,9 +12,8 @@ public:
 	Tensor<float> *weights;
 	Tensor<Gradient<float> > *weightGrads;
 
-
 	FCLayer(int inSize_, int outSize_): inSize(inSize_), outSize(outSize_) {
-			
+			this->type = fc_layer;
 			in = new Tensor<float> (inSize_, 1, 1);
 			out = new Tensor<float> (outSize_, 1, 1);
 			gradIn = new Tensor<float> (inSize_, 1, 1);
@@ -68,11 +67,11 @@ public:
 		}
 	}
 
-	void updateWeights(Optimizer<float> optimizer, float learningRate) {
+	void updateWeights(Optimizer<float> *optimizer, float learningRate) {
 		for (int i = 0; i < inSize; i++) {
 			for (int j = 0; j < outSize; j++) {
-				optimizer.updateWeight(weights->get(i,j,0), weightGrads->get(i,j,0), learningRate);
-				optimizer.updateGradient(weightGrads->get(i,j,0));
+				optimizer->updateWeight(weights->get(i,j,0), weightGrads->get(i,j,0), learningRate);
+				optimizer->updateGradient(weightGrads->get(i,j,0));
 			}
 		}
 	}

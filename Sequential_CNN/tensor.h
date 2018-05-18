@@ -3,6 +3,9 @@
 
 #include<iostream>
 #include<assert.h>
+#include<math.h>
+#include <type_traits>
+#include "gradient.h"
 
 using namespace std;
 
@@ -23,7 +26,7 @@ public:
 	T* data;
 	struct TensorSize tsize;
 
-	Tensor(int x, int y, int z): tsize({x,y,z}) {
+	Tensor<T>(int x, int y, int z): tsize({x,y,z}) {
 		data = new T[x*y*z];
 	}
 
@@ -44,6 +47,14 @@ public:
 		return ret;
 	}
 
+	Tensor<T> operator+ (float add) {
+		Tensor<T> ret(this->tsize);
+		for (int i=0; i < this->tsize.x * this->tsize.y * this->tsize.z; i++) {
+			ret.data[i] = this->data[i] + add;
+		}
+		return ret;
+	}	
+
 	Tensor<T> operator- (Tensor<T>& ts) {
 		assert(this->tsize == ts.tsize);
 		Tensor<T> ret(ts.tsize);
@@ -53,6 +64,38 @@ public:
 		return ret;
 	}
 
+	Tensor<T> operator/ (float div) {
+		Tensor<T> ret(this->tsize);
+		for (int i=0; i < this->tsize.x * this->tsize.y * this->tsize.z; i++) {
+			ret.data[i] = this->data[i] / div;
+		}
+		return ret;
+	}
+
+	Tensor<T> operator/ (Tensor<T>& ts) {
+		assert(this->tsize == ts.tsize);
+		Tensor<T> ret(ts.tsize);
+		for (int i=0; i < ts.tsize.x * ts.tsize.y * ts.tsize.z; i++) {
+			ret.data[i] = this->data[i] / ts.data[i];
+		}
+		return ret;
+	}
+
+	Tensor<T> square() {
+		Tensor<T> ret(this->tsize);
+		for (int i=0; i < this->tsize.x * this->tsize.y * this->tsize.z; i++) {
+			ret.data[i] = this->data[i] * this->data[i];
+		}
+		return ret;	
+	}
+
+	Tensor<T> sqrt_() {
+		Tensor<T> ret(this->tsize);
+		for (int i=0; i < this->tsize.x * this->tsize.y * this->tsize.z; i++) {
+			ret.data[i] = sqrt(this->data[i]);
+		}
+		return ret;	
+	}
 
 	T& operator() (int x, int y, int z) {
 		return get(x, y, z);
@@ -81,6 +124,7 @@ public:
 			}
 		}
 		cout << endl;
+		cerr << endl;
 	}
 
 	Tensor<T> flatten() {
@@ -120,6 +164,19 @@ public:
 		return res;
 	}
 
+	Tensor<T> reshape(TensorSize ts) {
+		return reshape(ts.x, ts.y, ts.z);
+	}
+
 };
+
+
+void clear(Tensor<float>& t) {
+	for (int i=0; i < t.tsize.x * t.tsize.y * t.tsize.z; i++) {
+		t.data[i] = 0.0;
+	}
+}
+
+
 
 #endif

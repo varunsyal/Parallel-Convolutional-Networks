@@ -20,6 +20,7 @@ public:
 	PoolLayer(int kernelSizeX_, int kernelSizeY_, TensorSize inSize_ ): kernelSizeX(kernelSizeX_), 
 		kernelSizeY(kernelSizeY_), inSize(inSize_) {
 			assert( (inSize.x % kernelSizeX) == 0 && (inSize.y % kernelSizeY) == 0); 
+			this->type = pool_layer;
 			in = new Tensor<float> (inSize_.x, inSize_.y, inSize_.z);
 			out = new Tensor<float> (inSize.x/kernelSizeX, inSize.y/kernelSizeY, inSize.z);
 			outSize = {inSize.x/kernelSizeX, inSize.y/kernelSizeY, inSize.z};
@@ -37,7 +38,8 @@ public:
 
 	//Forward Convolution Pass
 	void forward() {
-		int mxi = -1, mxj = -1, mxv = -19999999;
+		int mxi = -1, mxj = -1;
+		float mxv = -19999999.0;
 		for (int z = 0; z < inSize.z; z++) {
 			for (int x = 0; x < outSize.x; x++) {
 				for (int y = 0; y < outSize.y; y++) {
@@ -85,7 +87,7 @@ public:
 	}
 
 
-	void updateWeights(Optimizer<float> optimizer, float learningRate) {
+	void updateWeights(Optimizer<float> *optimizer, float learningRate) {
 		(void)0;
 	}
 

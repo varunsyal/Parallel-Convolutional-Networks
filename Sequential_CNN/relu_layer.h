@@ -4,7 +4,9 @@ using namespace std;
 
 class ReLULayer: public ActivationLayer {
 public:
-	ReLULayer(TensorSize inSize_ ): ActivationLayer(inSize_) {}
+	ReLULayer(TensorSize inSize_ ): ActivationLayer(inSize_) {
+		this->type = relu_layer;
+	}
 
 	float _activate_(float in) {
 		if (in > 0) return in;

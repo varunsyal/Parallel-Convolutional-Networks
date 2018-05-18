@@ -16,6 +16,7 @@ public:
 	TensorSize inSize;
 
 	ActivationLayer(TensorSize inSize_ ): inSize(inSize_) {
+			this->type = activation_layer;
 			in = new Tensor<float> (inSize_.x, inSize_.y, inSize_.z);
 			out = new Tensor<float> (inSize_.x, inSize_.y, inSize_.z);
 			gradIn = new Tensor<float> (inSize);
@@ -67,7 +68,7 @@ public:
 	}
 
 
-	void updateWeights(Optimizer<float> optimizer, float learningRate) {
+	void updateWeights(Optimizer<float> *optimizer, float learningRate) {
 		(void)0;
 	}
 

@@ -17,7 +17,7 @@ public:
 	ConvLayer(int kernelSize_, int numKernels_, int stride_, int padding_, TensorSize inSize_ ): kernelSize(kernelSize_), 
 		numKernels(numKernels_), stride(stride_), padding(padding_), inSize(inSize_) {
 			assert( (inSize.x + 2*padding - kernelSize)%stride == 0 );
-			
+			this->type = conv_layer;
 			in = new Tensor<float> (inSize_.x + padding_*2, inSize_.y + padding_*2, inSize_.z);
 			out = new Tensor<float> ((inSize_.x + 2*padding_ - kernelSize_)/stride_ + 1, 
 				(inSize_.y + padding_*2 - kernelSize_)/stride_ + 1, 
@@ -158,13 +158,13 @@ public:
 	}
 
 
-	void updateWeights(Optimizer<float> optimizer, float learningRate) {
+	void updateWeights(Optimizer<float> *optimizer, float learningRate) {
 		for (int k = 0; k < numKernels; k++) {
 			for (int x = 0; x < kernelSize; x++) {
 				for (int y = 0; y < kernelSize; y++) {
 					for (int z = 0; z < inSize.z; z++) {
-						optimizer.updateWeight(kernels[k].get(x,y,z), gradKernels[k].get(x,y,z), learningRate);
-						optimizer.updateGradient(gradKernels[k].get(x,y,z));
+						optimizer->updateWeight(kernels[k].get(x,y,z), gradKernels[k].get(x,y,z), learningRate);
+						optimizer->updateGradient(gradKernels[k].get(x,y,z));
 					}
 				}
 			}
