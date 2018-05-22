@@ -145,7 +145,7 @@ void normalizeData(vector<Tensor<float> > &vec) {
 	}
 }
  
-#define NUM_EPOCHS 500
+#define NUM_EPOCHS 10
 #define NUM_TRAIN_SAMPLES 100
 #define INPUT_WIDTH 28
 #define INPUT_HEIGHT 28
@@ -173,6 +173,7 @@ int main()
 	LeNet Lenet(optimizer, lr, loss);
 
 	//-------------------Train Network ----------------------
+	int start_s=clock();
 	for (int e = 0; e < NUM_EPOCHS; e++) {
 		cout << "----------------------EPOCH: " << e << "------------------------" << endl;
 	  	for (int i = 0; i < NUM_TRAIN_SAMPLES; i++) {
@@ -186,5 +187,7 @@ int main()
 	  	accuracy = (float) corr / (float) NUM_TRAIN_SAMPLES;
 	  	cout << "Accuracy = " << accuracy << endl;
 	}
+	int stop_s=clock();
+	cout << "time: " << (stop_s-start_s)/double(CLOCKS_PER_SEC) << endl;
   	return 0;
 }
