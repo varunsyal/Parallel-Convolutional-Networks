@@ -13,6 +13,13 @@ public:
 		value = 0;
 		prevValue = 1.0;
 	}
+
+	Gradient<T> operator+ (Gradient<T>& ts) {
+		Gradient<T> ret;
+		ret.value = this->value + ts.value;
+		return ret;
+	}
+
 	template <class U>
 	friend ostream& operator<< (ostream& stream, const Gradient<U>& grad); 
 };

@@ -1,0 +1,32 @@
+Layer *pool0 = new PoolLayer(0, 2, 2, {28, 28, 1});
+this->addLayer(pool0);
+
+Layer *conv1 = new ConvLayer(1, 5, 6, 1, 0, {14, 14, 1});
+this->addLayer(conv1);
+
+Layer *sigm2 = new SigmoidLayer(2, {10, 10, 6});
+this->addLayer(sigm2);
+
+Layer *conv3 = new ConvLayer(3, 5, 16, 1, 0, {10, 10, 6});
+this->addLayer(conv3);
+
+Layer *sigm4 = new SigmoidLayer(4, {6, 6, 16});
+this->addLayer(sigm4);		
+
+Layer *fc5 = new FCLayer(5, 6*6*16, 10);
+this->addLayer(fc5);
+
+Layer *sigm6 = new SigmoidLayer(6, {10, 1, 1});
+this->addLayer(sigm6);
+
+
+#define NUM_EPOCHS 500
+#define NUM_TRAIN_SAMPLES 500
+#define INPUT_WIDTH 28
+#define INPUT_HEIGHT 28
+#define LEARNING_RATE 0.01
+#define MINIBATCH 20
+#define SGD 0
+
+
+500 epochs :::: Comet = 24 threads :::: 97% accuracy!

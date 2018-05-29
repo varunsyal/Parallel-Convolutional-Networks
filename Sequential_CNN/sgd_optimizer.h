@@ -9,8 +9,8 @@ template <class T>
 class SGDOptimizer: public Optimizer<T> {
 public:
 
-	void updateWeight(T& weight, Gradient<T> grad, float learningRate) {
-		weight = weight - learningRate * grad.value;
+	void updateWeight(T& weight, Gradient<T> grad, float learningRate, int batchSize) {
+		weight = weight - learningRate * grad.value / float(batchSize);
 	}
 
 	void updateGradient(Gradient<T>& grad) {

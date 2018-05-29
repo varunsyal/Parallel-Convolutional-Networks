@@ -4,7 +4,7 @@ using namespace std;
 
 class SigmoidLayer: public ActivationLayer {
 public:
-	SigmoidLayer(TensorSize inSize_ ): ActivationLayer(inSize_) {
+	SigmoidLayer(int indx_, TensorSize inSize_ ): ActivationLayer(indx_, inSize_) {
 		this->type = relu_layer;
 	}
 

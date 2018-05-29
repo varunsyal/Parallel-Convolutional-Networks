@@ -7,6 +7,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include<time.h>
+#include<algorithm>
+
 
 using namespace std;
 
@@ -14,38 +17,26 @@ class LeNet: public Model {
 public:
 	LeNet(Optimizer<float> *optimizer_, float lr, LossFunction* loss_): Model(optimizer_, lr, loss_) {
 
-		// Layer *conv1 = new ConvLayer(5, 6, 1, 2, {28, 28, 1});
-		// this->addLayer(conv1);
+		Layer *pool0 = new PoolLayer(0, 2, 2, {28, 28, 1});
+		this->addLayer(pool0);
+		
+		Layer *conv1 = new ConvLayer(1, 5, 6, 1, 0, {14, 14, 1});
+		this->addLayer(conv1);
 
-		// Layer *relu1 = new SigmoidLayer({28, 28, 6});
-		// this->addLayer(relu1);
+		Layer *sigm2 = new SigmoidLayer(2, {10, 10, 6});
+		this->addLayer(sigm2);
 
-		Layer *pool2 = new PoolLayer(2, 2, {28, 28, 1});
-		this->addLayer(pool2);
-
-		Layer *conv3 = new ConvLayer(5, 16, 1, 0, {14, 14, 1});
+		Layer *conv3 = new ConvLayer(3, 5, 16, 1, 0, {10, 10, 6});
 		this->addLayer(conv3);
 
-		Layer *sigm3 = new SigmoidLayer({10, 10, 16});
-		this->addLayer(sigm3);
+		Layer *sigm4 = new SigmoidLayer(4, {6, 6, 16});
+		this->addLayer(sigm4);		
 
-		Layer *pool4 = new PoolLayer(2, 2, {10, 10, 16});
-		this->addLayer(pool4);
+		Layer *fc5 = new FCLayer(5, 6*6*16, 10);
+		this->addLayer(fc5);
 
-		Layer *conv5 = new ConvLayer(5, 120, 1, 0, {5, 5, 16});
-		this->addLayer(conv5);
-
-		Layer *sigm5 = new SigmoidLayer({1,1,120});
-		this->addLayer(sigm5);
-
-		Layer *fc6 = new FCLayer(120, 84);
-		this->addLayer(fc6);
-
-		Layer *sigm6 = new SigmoidLayer({84, 1, 1});
+		Layer *sigm6 = new SigmoidLayer(6, {10, 1, 1});
 		this->addLayer(sigm6);
-
-		Layer *fc7 = new FCLayer(84, 10);
-		this->addLayer(fc7);
 
 	}
 };
@@ -144,12 +135,32 @@ void normalizeData(vector<Tensor<float> > &vec) {
 		// vec[i].printTensor();
 	}
 }
- 
-#define NUM_EPOCHS 10
-#define NUM_TRAIN_SAMPLES 100
+
+void shuffleData(vector<Tensor<float> > &data, vector<Tensor<float> > &labels) {
+	int sz = data.size();
+	vector<pair<Tensor<float>, Tensor<float> > > zippedList;
+
+	for (int i=0; i < sz; i++) {
+		zippedList.push_back(pair<Tensor<float>, Tensor<float> >(data[i], labels[i]));
+	}
+	
+	random_shuffle ( zippedList.begin(), zippedList.end() );
+	data.clear();
+	labels.clear();
+	for (int i=0; i < sz; i++) {
+		data.push_back(zippedList[i].first);
+		labels.push_back(zippedList[i].second);
+	}
+	zippedList.clear();
+}
+
+#define NUM_EPOCHS 500
+#define NUM_TRAIN_SAMPLES 500
 #define INPUT_WIDTH 28
 #define INPUT_HEIGHT 28
-#define LEARNING_RATE 0.1
+#define LEARNING_RATE 0.01
+#define MINIBATCH 20
+#define SGD 0
 
 vector<Tensor<float> > trainData;
 vector<Tensor<float> > trainLabels;
@@ -173,21 +184,61 @@ int main()
 	LeNet Lenet(optimizer, lr, loss);
 
 	//-------------------Train Network ----------------------
-	int start_s=clock();
-	for (int e = 0; e < NUM_EPOCHS; e++) {
-		cout << "----------------------EPOCH: " << e << "------------------------" << endl;
-	  	for (int i = 0; i < NUM_TRAIN_SAMPLES; i++) {
-	  		Lenet.trainOne(trainData[i], trainLabels[i]);
-	  	}
-
-	  	corr = 0;
+	double start, finish;
+	double elapsed;
+	start = omp_get_wtime();
+	for (int e = 0, c = 1; e < NUM_EPOCHS; e++) {
+		shuffleData(trainData, trainLabels);
+		// if (e > 0 && ((e%(8*c))==0)) {
+		//	 Lenet.setLearningRate(Lenet.getLearningRate()/3.0);
+		//   c *= 2;
+		// }
+		corr = 0;
 	  	for (int i = 0; i < NUM_TRAIN_SAMPLES; i++) {
 	  		corr += Lenet.correct(trainData[i], trainLabels[i], false);
 	  	}  	
 	  	accuracy = (float) corr / (float) NUM_TRAIN_SAMPLES;
 	  	cout << "Accuracy = " << accuracy << endl;
+		
+		cout << "----------------------EPOCH: " << e << "------------------------" << endl;
+
+		if (SGD) {
+		  	for (int i = 0; i < NUM_TRAIN_SAMPLES; i++) {
+		  		Lenet.trainOne(trainData[i], trainLabels[i], false);
+		  	}
+		} else {
+			// shuffle(trainData, trainLabels);
+			vector<Tensor<float> >::iterator itData1, itData2, itLabel1, itLabel2;
+			itData1 = trainData.begin();
+			itLabel1 = trainLabels.begin();
+			int kk = 0;
+			while (itData1 < trainData.end()) {
+				itData2 = itData1 + MINIBATCH;
+				itLabel2 = itLabel1 + MINIBATCH;
+				if (itData2 >= trainData.end()) itData2 = trainData.end();
+				if (itLabel2 >= trainLabels.end()) itLabel2 = trainLabels.end();
+				vector<Tensor<float> > trainDataBatch(itData1, itData2);
+				vector<Tensor<float> > trainLabelBatch(itLabel1, itLabel2);
+				
+				Lenet.trainBatch(trainDataBatch, trainLabelBatch, true);
+				
+				itData1 = itData2;
+				itLabel1 = itLabel2;
+			}
+		}	
+
+	  	
 	}
-	int stop_s=clock();
-	cout << "time: " << (stop_s-start_s)/double(CLOCKS_PER_SEC) << endl;
+
+	corr = 0;
+  	for (int i = 0; i < NUM_TRAIN_SAMPLES; i++) {
+  		corr += Lenet.correct(trainData[i], trainLabels[i], false);
+  	}  	
+  	accuracy = (float) corr / (float) NUM_TRAIN_SAMPLES;
+  	cout << "Accuracy = " << accuracy << endl;
+
+	finish = omp_get_wtime();
+	elapsed = (finish - start);
+	cout << "Time: " << elapsed << endl;
   	return 0;
 }

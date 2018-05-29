@@ -7,52 +7,61 @@
 #include "relu_layer.h"
 #include "sigmoid_layer.h"
 #include "softmax_cross_entropy.h"
-#include<vector>
+#include <vector>
+#include <omp.h>
 
 using namespace std;
 
 class Model {
 public:
+	int x = 0;
 	float learningRate;
 	Optimizer<float> *optimizer;
 	vector<Layer*> modelLayers;
 	LossFunction *loss;
 
-	Tensor<float> forwardPass(Tensor<float> input, bool prnt) {
+	Tensor<float> forwardPass(Tensor<float> input, vector<Tensor<float> >& layer_ins, bool prnt) {
 		Tensor<float> x = input;
 		for (int i = 0; i < modelLayers.size(); i++) {
 			if (modelLayers[i]->type == fc_layer) {
 				x = x.flatten();
 			}
-			Tensor<float> tmp = modelLayers[i]->operator()(x);
+			Tensor<float> tmp = modelLayers[i]->operator()(x, layer_ins);
 			x = tmp;
 			if (prnt) {
 				cout << "=======LAYER " << i << modelLayers[i]->type << "=============\n\n";
 				x.printTensor();
+				if (i==1) {
+					modelLayers[1] -> printWeights();
+				}	
 			}
 		}
+
 
 		return x;
 	}
 
-	void calculateModelGradients(Tensor<float> outGrads) {
+	void calculateModelGradients(Tensor<float> outGrads, vector<Tensor<float> > layer_ins) {
 		Tensor<float> x = outGrads;
 		for (int i = modelLayers.size() - 1; i >= 0; i--) {
 			if (i+1 < modelLayers.size() && modelLayers[i+1] -> type == fc_layer) {
 				x = x.reshape(modelLayers[i]->out->tsize);
 			}
-			modelLayers[i]->calculateGradients(x);
-			x = *(modelLayers[i]->gradIn);
+			x = modelLayers[i]->calculateGradients(x, layer_ins);
 		}
 	}
 
-	void updateModelParameters() {
+	void updateModelParameters(int batchSize) {
 		for (int i = modelLayers.size() - 1; i >= 0; i--) {
-			modelLayers[i]->updateWeights(this->optimizer, this->learningRate);
+			modelLayers[i]->updateWeights(this->optimizer, this->learningRate, batchSize);
 		}	
 	}
 
-// public:
+	void clearModelGradients() {
+		for (int i = 0; i < modelLayers.size(); i++) {
+			modelLayers[i] -> clearGradients();
+		}
+	}
 
 	void setOptimizer(Optimizer<float> *optimizer_) {
 		this->optimizer = optimizer_;
@@ -83,17 +92,68 @@ public:
 		modelLayers.push_back(l);
 	}
 
-	void trainOne(Tensor<float> input, Tensor<float> targets) {
+	void trainOne(Tensor<float> input, Tensor<float> targets, bool b) {
 		float lossValue;
 		Tensor<float> outGrads;
-		Tensor<float> output = forwardPass(input, false);
+		vector<Tensor<float> > layer_ins;
+		Tensor<float> output = forwardPass(input, layer_ins, false);
 		this->loss->operator()(output, targets, lossValue, outGrads);
-		calculateModelGradients(outGrads);
-		updateModelParameters();
+		
+		if (b == true) {
+			output.printTensor();
+		}
+		clearModelGradients();
+		calculateModelGradients(outGrads, layer_ins);
+		updateModelParameters(1);
+	}
+
+	void trainBatch(vector<Tensor<float> > inputs, vector<Tensor<float> > targets, bool b) {
+		int tid;
+		
+		#pragma omp parallel private(tid)
+		{
+		tid = omp_get_thread_num();
+
+		clearModelGradients();
+		
+		#pragma omp barrier
+
+		#pragma omp for
+		for (int i=0; i < inputs.size(); i++) {
+			float lossValue;
+			vector<Tensor<float> > layer_ins;
+			Tensor<float> output;
+
+			if (i==0 ) {
+				output = forwardPass(inputs[i], layer_ins, false);	
+			} else {
+				output = forwardPass(inputs[i], layer_ins, false);
+			}
+
+			Tensor<float> outg;
+			this->loss->operator()(output, targets[i], lossValue, outg);
+
+			calculateModelGradients(outg, layer_ins);
+		}
+
+		
+
+		// if (b == true) {
+		// 	 outGrads[0].printTensor();
+		// }
+		
+		#pragma omp barrier		
+
+		updateModelParameters(inputs.size());
+
+		}	
+
+
 	}
 
 	int correct(Tensor<float> input, Tensor<float> targets, bool shouldPrint) {
-		Tensor<float> output = forwardPass(input, false);
+		vector<Tensor<float> > layer_ins;
+		Tensor<float> output = forwardPass(input, layer_ins, false);
 		if (shouldPrint) {
 			cout << "OUTPUT: \n";
 			output.printTensor();

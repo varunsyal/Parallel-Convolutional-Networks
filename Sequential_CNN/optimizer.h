@@ -8,7 +8,7 @@ using namespace std;
 template <class T>
 class Optimizer {
 public:
-	virtual void updateWeight(T& weight, Gradient<T> grad, float learningRate) = 0;
+	virtual void updateWeight(T& weight, Gradient<T> grad, float learningRate, int batchSize) = 0;
 	
 	virtual void updateGradient(Gradient<T>& grad) = 0;
 };
