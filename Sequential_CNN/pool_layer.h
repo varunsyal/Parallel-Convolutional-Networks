@@ -108,6 +108,9 @@ public:
 		(void)0;
 	}
 
+	void addGlobalGradients() {
+		(void)0;
+	}
 };
 
 #endif

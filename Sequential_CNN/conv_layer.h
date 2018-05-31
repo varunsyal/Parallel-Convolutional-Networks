@@ -5,6 +5,10 @@
 #include <vector>
 #include <omp.h>
 
+#ifdef __MPI_IMPLEMENTATION__
+#include "mpi.h"
+#endif
+
 using namespace std;
 
 class ConvLayer: public Layer {
@@ -206,5 +210,58 @@ public:
 		}
 	}
 
+#ifdef __MPI_IMPLEMENTATION__
+
+	void serializeGradients(vector<Tensor<Gradient<float> > > &gradKernels_, float *buffer_) {
+		int indx_ = 0;
+		for (int k=0; k < numKernels; k++) {
+			for (int x=0; x < kernelSize; x++) {
+				for (int y=0; y < kernelSize; y++) {
+					for (int z=0; z < inSize.z; z++) {
+						buffer_[indx_++] = gradKernels_[k](x,y,z).value;	
+					}
+				}
+			}
+		}
+	}
+
+	void deserializeGradients(float *buffer_, vector<Tensor<Gradient<float> > > &gradKernels_ ) {
+		int indx_ = 0;
+		for (int k=0; k < numKernels; k++) {
+			for (int x=0; x < kernelSize; x++) {
+				for (int y=0; y < kernelSize; y++) {
+					for (int z=0; z < inSize.z; z++) {
+						gradKernels_[k](x,y,z).value = buffer_[indx_++];	
+					}
+				}
+			}
+		}
+	}
+
+	void addGlobalGradients() {
+		float* local_buffer = new float[kernelSize * kernelSize * numKernels * inSize.z];
+		float* summed_buffer = new float[kernelSize * kernelSize * numKernels * inSize.z];
+			
+		serializeGradients(gradKernels, local_buffer);
+
+		MPI_Allreduce(local_buffer,
+			summed_buffer,
+			kernelSize * kernelSize * numKernels * inSize.z,
+			MPI_FLOAT,
+			MPI_SUM,
+			MPI_COMM_WORLD);
+
+		deserializeGradients(summed_buffer, gradKernels);
+		delete[] local_buffer;
+		delete[] summed_buffer;
+	}
+
+#else
+
+	void addGlobalGradients() {
+		(void)0;
+	}
+
+#endif
 
 };

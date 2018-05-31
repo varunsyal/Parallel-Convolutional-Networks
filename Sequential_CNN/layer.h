@@ -30,6 +30,8 @@ public:
 
 	virtual void printWeights() = 0;
 
+	virtual void addGlobalGradients() = 0;
+
 };
 
 #endif

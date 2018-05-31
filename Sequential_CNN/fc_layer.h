@@ -5,6 +5,10 @@
 #include<vector>
 #include<omp.h>
 
+#ifdef __MPI_IMPLEMENTATION__
+#include "mpi.h"
+#endif
+
 using namespace std;
 
 class FCLayer: public Layer {
@@ -68,24 +72,19 @@ public:
 		Tensor<Gradient<float> > *weightGrads_ = new Tensor<Gradient<float> > (inSize, outSize, 1);
 
 		assert(gradOut.tsize.x == outSize && gradOut.tsize.y == 1 && gradOut.tsize.z == 1);
-		// cerr << "1";
 		for (int i = 0; i < inSize; i++) {
 			gradIn_->get(i,0,0) = 0.0;
 		}
-		// cerr << "2{{  "; layer_ins[this->indx].printSize();
-		
 		for (int i = 0; i < outSize; i++) {
 			for (int j = 0; j < inSize; j++) {
 				gradIn_->get(j,0,0) += gradOut(i,0,0) * weights->get(j,i,0);
 				weightGrads_->get(j,i,0).value += gradOut(i,0,0) * layer_ins[this->indx].get(j,0,0);
 			}
 		}
-		// cerr << "3";
 		#pragma omp critical
 		{
 		*weightGrads = *weightGrads_ + *weightGrads;
 		}
-		// cerr << "4";
 		return *gradIn_;
 	}
 
@@ -105,6 +104,51 @@ public:
 			}
 		}
 	}
+
+
+#ifdef __MPI_IMPLEMENTATION__
+
+	void serializeGradients(Tensor<Gradient<float> > *weightGrads_, float *buffer_) {
+		int indx_ = 0;
+		for (int i = 0; i < inSize; i++) {
+			for (int j = 0; j < outSize; j++) {
+				buffer_[indx_++] = weightGrads_->get(i,j,0).value;
+			}
+		}
+	}
+
+	void deserializeGradients(float *buffer_, Tensor<Gradient<float> > *weightGrads_ ) {
+		int indx_ = 0;
+		for (int i = 0; i < inSize; i++) {
+			for (int j = 0; j < outSize; j++) {
+				weightGrads_->get(i,j,0).value = buffer_[indx_++];
+			}
+		}
+	}
+
+	void addGlobalGradients() {
+		float* local_buffer = new float[inSize * outSize];
+		float* summed_buffer = new float[inSize * outSize];
+		serializeGradients(weightGrads, local_buffer);
+
+		MPI_Allreduce(local_buffer,
+			summed_buffer,
+			inSize * outSize,
+			MPI_FLOAT,
+			MPI_SUM,
+			MPI_COMM_WORLD);
+		deserializeGradients(summed_buffer, weightGrads);
+		delete[] local_buffer;
+		delete[] summed_buffer;
+	}
+
+#else
+
+	void addGlobalGradients() {
+		(void)0;
+	}
+
+#endif
 
 	void printWeights() {
 		weights->printTensor();
