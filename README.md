@@ -1,13 +1,13 @@
 A C++ Library for Convolutional Neural Nets with Parallel Computing(openMP, CUDA, MPI)
 
 ## Usage: ##
-g++ -std=c++11 -fopenmp lenet.cpp -o lenet
+g++ -std=c++11 -fopenmp lenet.cpp -o lenet <br />
 ./lenet
 
-* This is a multi-threaded version of the model (with data parallelism) and you can change the number of threads by using:
+* This is a multi-threaded version of the model (with data parallelism) and you can change the number of threads by using:<br />
 export OMP_NUM_THREADS=4
 
-* For using the MPI version of code, you need to compile using mpic++:
+* For using the MPI version of code, you need to compile using mpic++:<br />
 mpic++ -std=c++11 -fopenmp lenet.cpp -o lenet
 
 and you can run this on multi-node system!
@@ -20,7 +20,7 @@ and you can run this on multi-node system!
 * You can create your custom Loss functions by extending the _LossFunction_ class.
 
 ## Work in Progress ##
-Optimizations using:
-openMP: COMPLETED
-MPI: COMPLETED
-CUDA: IN PROGRESS
+Optimizations using:<br />
+openMP: COMPLETED<br />
+MPI: COMPLETED<br />
+CUDA: IN PROGRESS<br />
